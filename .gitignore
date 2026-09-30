@@ -1,0 +1,4 @@
+*.log
+*.db
+secret_local.py
+.DS_Store
