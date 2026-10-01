@@ -22,7 +22,7 @@
 import requests
 from datetime import datetime, date
 
-from secret_local import APP_ID, APP_SECRET, APP_TOKEN, ARK_API_KEY   # 密钥全在本地配置
+from secret_local import APP_ID, APP_SECRET, APP_TOKEN, ARK_API_KEY, FEISHU_WEBHOOK   # 密钥全在本地配置
 
 # =====================================================================
 # 第一部分：从飞书拉数据（和check_expiring.py一样，复习）
@@ -127,6 +127,21 @@ if "choices" in data:
     with open("ai_report.log", "a", encoding="utf-8") as f:
         f.write(f"\n===== {today} 运行 =====\n{summary}\n")
     print(f"\n✅ 已写入 ai_report.log（日志只追加，历史不丢 = 可回归）")
+
+    # =====================================================================
+    # 【新】推送摘要到飞书群（自动化的"最后一公里"：结果要触达人才有用）
+    # 注意：消息带"【客户360】"前缀——满足机器人"自定义关键词"安全校验
+    # =====================================================================
+    push_msg = f"【客户360】{today} 客户续约风险AI摘要\n\n{summary}"
+    push_resp = requests.post(
+        FEISHU_WEBHOOK,
+        json={"msg_type": "text", "content": {"text": push_msg}},
+    )
+    push_result = push_resp.json()
+    if push_result.get("code") == 0:
+        print("✅ 摘要已推送到飞书群")
+    else:
+        print(f"⚠️ 飞书推送失败：code={push_result.get('code')} msg={push_result.get('msg')}（日志已保留，不影响）")
 else:
     print("❌ 调用失败，返回内容：")
     print(data)
